@@ -7,9 +7,7 @@ from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 import traceback
 
-# ────────────────────────────────
 # PATHS
-# ────────────────────────────────
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(CURRENT_DIR, "..", "data")
 INDEX_PATH = os.path.join(DATA_DIR, "index.faiss")
@@ -23,9 +21,7 @@ answers = []
 faqs = []
 embedder = None
 
-# ────────────────────────────────
 # SAFE LOADING WITH FULL ERROR REPORT
-# ────────────────────────────────
 try:
     print("Loading FAISS index...")
     if not os.path.exists(INDEX_PATH):
@@ -68,9 +64,7 @@ except Exception as e:
     raise  # Crash the app — better than silent failure
 
 
-# ────────────────────────────────
-# Hybrid search (unchanged — perfect as is)
-# ────────────────────────────────
+# Hybrid search
 def hybrid_search(query: str, k: int = 5, alpha: float = 0.75):
     query_emb = embedder.encode(query, convert_to_numpy=True, normalize_embeddings=True)
     query_emb = np.expand_dims(query_emb, axis=0).astype(np.float32)
