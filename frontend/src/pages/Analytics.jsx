@@ -158,7 +158,7 @@ export default function Analytics() {
           ))}
         </div>
 
-        {/* User Feedback}
+        {/* User Feedback*/}
         <div className="relative bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-12 shadow-2xl overflow-hidden">
           {/* Background glow orbs - now safely BEHIND the chart */}
           <div className="absolute inset-0 pointer-events-none">
@@ -216,5 +216,5 @@ export default function Analytics() {
         </div>
       </div>
     </div>
-  );
+  ); 
 }
