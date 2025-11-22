@@ -5,11 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: '0.0.0.0',     // keeps your current setup
+    host: '0.0.0.0',    
     port: 5173,
     strictPort: true,
     proxy: {
-      // THIS IS THE MAGIC — ALL API CALLS NOW GO TO YOUR FASTAPI BACKEND
       '/analytics': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
