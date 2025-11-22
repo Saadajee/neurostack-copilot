@@ -38,7 +38,6 @@ export default function MessageBubble({ type, children, message }) {
         >
           <div className="text-base leading-relaxed whitespace-pre-wrap">{children}</div>
 
-          {/* Feedback — clean & works in both modes */}
           {!isUser && !message?.isStreaming && (
             <div className="mt-4 pt-3 border-t border-gray-300/50 dark:border-white/10 flex items-center gap-4">
               <button
