@@ -1,66 +1,84 @@
-# Neurostack Copilot  
-**Your AI-Powered Support Assistant with Zero Hallucinations**
+# Neurostack Copilot
+Your AI-Powered Support Assistant with Zero Hallucinations
 
-A production-ready RAG copilot with hybrid retrieval, streaming answers, source transparency, feedback loop, and a gorgeous analytics dashboard.
+Neurostack Copilot is a production-ready, fully local RAG (Retrieval-Augmented Generation) assistant that lets you chat with your own documents using offline LLMs. It combines hybrid retrieval, real-time streaming responses, source transparency, feedback collection, and a live analytics dashboard.
 
-**Live Demo:** `http://localhost:5173` (when running)  
-**Built by:** Saad — A+ Final Project (Nov 2025)
+Built by: Saad (November 2025)
 
----
+## Features
+- Hybrid Retrieval: FAISS (semantic) + BM25 (keyword) with custom re-ranking
+- Real-time Streaming Answers
+- Full Source Transparency: displays retrieved chunks and relevance scores
+- Hallucination Guardrails: rejects queries with low retrieval confidence
+- Feedback System: thumbs up/down per answer, stored and visualized
+- Live Analytics Dashboard with charts (queries over time, accuracy, etc.)
+- Modern UI: glassmorphism design, dark mode, fully responsive
+- Secure Multi-User Support: JWT authentication, user-isolated sessions, protected routes
 
-### Features
+## Tech Stack
 
-- **Hybrid Retrieval** — FAISS (semantic) + BM25 (keyword) with custom re-ranking  
-- **Real-time Streaming** — Answers type out as they generate  
-- **Source Transparency** — Shows retrieved chunks + relevance scores  
-- **Hallucination Guardrails** — Rejects low-confidence queries  
-- **Feedback System** — Thumbs Up / Thumbs Down → saved + reflected in analytics  
-- **Stunning Analytics Dashboard** — Live stats + Recharts bar graph  
-- **Dark Mode + Glassmorphism UI** — Looks like a $10M startup  
-- **JWT Auth + Protected Routes** — Clean login flow  
+| Layer         | Technologies                                      |
+|---------------|---------------------------------------------------|
+| Backend       | FastAPI, LangChain, sentence-transformers, FAISS, BM25 |
+| LLM           | Ollama (default: gemma3:4b, fully local)          |
+| Frontend      | React 18, Vite, Tailwind CSS, Recharts, lucide-react |
+| Vector Store  | FAISS (in-memory, rebuilt on demand)              |
+| Auth          | JWT + SQLite                                      |
 
----
-
-### Tech Stack
-
-| Layer         | Tools                                                                 |
-|---------------|-----------------------------------------------------------------------|
-| Backend       | FastAPI • LangChain • sentence-transformers • FAISS • BM25            |
-| LLM           | Ollama (Llama 3.2 / Mistral / Gemma3:4b) — local & private            |
-| Frontend      | React 18 • Vite • Tailwind CSS • Recharts • lucide-react              |
-| Vector DB     | FAISS (in-memory, loaded at startup)                                  |
-| Auth          | JWT + localStorage                                                    |
-
----
-
-### Project Structure
-
-neurostack-copilot/
-├── backend/
-│   ├── app/main.py              → FastAPI + /feedback + /analytics
-│   ├── app/rag/                 → Hybrid retriever (FAISS + BM25)
-│   └── data/feedback.json       → All user feedback stored here
-│
-├── frontend/
-│   ├── src/pages/Chat.jsx       → Streaming chat + feedback buttons
-│   ├── src/pages/Analytics.jsx  → Beautiful dashboard
-│   └── src/components/          → MessageBubble, RetrievedChunks, etc.
-│
-└── README.md
+## Quick Start
 
 
----
+git clone https://github.com/yourusername/neurostack-copilot.git
+cd neurostack-copilot
 
-### How to Run (3 Commands)
+# Backend setup
+conda create -n neurostack python=3.12 -y
+conda activate neurostack
+cd backend
+pip install -r requirements.txt
 
-#### 1. Start Ollama (Local LLM)
-#cmd
-ollama run gemma3:4b     # or mistral, phi3, gemma2
+# Frontend setup
+cd ../frontend
+npm install
 
-### 2. Start backend (FastAPI)
+# Terminal 1 - Ollama
+ollama run gemma3:4b
+# or: ollama run llama3.1:8b, mistral-nemo, qwen2.5:14b, etc.
+
+# Terminal 2 - Backend
 cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-### 3. Start backend (FastAPI)
+# Terminal 3 - Frontend
 cd frontend
 npm run dev
+
+Adding Your Documents
+
+Place PDF, DOCX, TXT, or MD files in:textbackend/app/data/
+Build/rebuild the index:Bashcd backend
+python app/rag/build_index.py
+
+Your knowledge base is immediately available.
+Configuration (backend/.env)
+textOLLAMA_MODEL=gemma3:4b
+OLLAMA_BASE_URL=http://localhost:11434
+PORT=8000
+ALLOW_REGISTRATION=true   # set to false after creating accounts
+JWT_SECRET=your-very-long-secret-key-here
+API Endpoints
+
+POST /api/chat           → streaming response + sources
+POST /api/build-index    → rebuild document index
+POST /api/login          → authenticate user
+POST /api/register       → create new user
+GET  /api/analytics      → live statistics
+
+Notes
+
+100% local - no data ever leaves your machine
+Supports multiple concurrent users with isolated sessions
+Works offline after initial Ollama model download
+Responsive design with dark mode toggle
+
+Ready to run. No external APIs. No subscriptions. Just your data and your model.
