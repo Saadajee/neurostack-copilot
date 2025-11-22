@@ -1,0 +1,107 @@
+[
+  {
+    "query": "User asked a question",
+    "answer": "",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T07:19:47.052480"
+  },
+  {
+    "query": "User asked a question",
+    "answer": "",
+    "rating": "bad",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T07:20:42.942783"
+  },
+  {
+    "query": "User asked a question",
+    "answer": "",
+    "rating": "bad",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T07:23:26.994214"
+  },
+  {
+    "query": "User asked a question",
+    "answer": "",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T07:44:29.989376"
+  },
+  {
+    "query": "User asked a question",
+    "answer": "",
+    "rating": "bad",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T07:44:51.869036"
+  },
+  {
+    "query": "User asked a question",
+    "answer": "",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T07:44:53.711478"
+  },
+  {
+    "query": "User asked",
+    "answer": "Hey there! How\u2019s it going?",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T08:36:37.583627"
+  },
+  {
+    "query": "User asked",
+    "answer": "Hi there! How can I help you today?",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T08:36:39.614988"
+  },
+  {
+    "query": "User asked",
+    "answer": "Hey there! Just saying hello back! How can I help you today?",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T08:53:37.395857"
+  },
+  {
+    "query": "User asked",
+    "answer": "Hey there! How\u2019s it going?",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T08:53:39.036259"
+  },
+  {
+    "query": "User asked",
+    "answer": "Hi there! How can I help you today?",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T08:53:40.446295"
+  },
+  {
+    "query": "User asked",
+    "answer": "Your username is simply the email address you used when you signed up! Just try that email address and you should be good to go.",
+    "rating": "good",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T09:26:04.131033"
+  },
+  {
+    "query": "User asked",
+    "answer": "Your username is simply the email address you used when you signed up! Just try that email address and you should be good to go.",
+    "rating": "bad",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T09:26:09.015729"
+  },
+  {
+    "query": "User asked",
+    "answer": "RAG stands for Retrieval-Augmented Generation. It\u2019s how we ensure our answers are super accurate \u2013 over98% of the time, they\u2019re grounded in current information thanks to our guardrails!",
+    "rating": "bad",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T09:56:26.355665"
+  },
+  {
+    "query": "User asked",
+    "answer": "Yeah, the RAG is really solid \u2013 it\u2019s consistently accurate with over98% of its answers based on the latest information, thanks to our guardrails!",
+    "rating": "bad",
+    "email": "saad@gmail.com",
+    "timestamp": "2025-11-22T09:56:27.285693"
+  }
+]

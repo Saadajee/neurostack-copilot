@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neurostack Copilot</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#6366f1',
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- DARK MODE: INSTANT, NO FLASH, REMEMBERS AFTER LOGOUT -->
+    <script>
+      (function () {
+        // Start dark by default
+        document.documentElement.classList.add('dark');
+
+        // Check if we know the last user's theme
+        const lastEmail = localStorage.getItem('last_email_for_theme');
+        if (lastEmail) {
+          const savedTheme = localStorage.getItem('darkmode_' + lastEmail);
+          if (savedTheme === 'false') {
+            document.documentElement.classList.remove('dark');
+          }
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
