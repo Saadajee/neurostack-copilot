@@ -101,6 +101,7 @@ export default function Analytics() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
+      {/* Epic Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-purple-900/30 via-black to-indigo-900/30" />
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(168,85,247,0.25),transparent_60%)]" />
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(236,72,153,0.2),transparent_60%)]" />
@@ -158,7 +159,7 @@ export default function Analytics() {
           ))}
         </div>
 
-        {/* User Feedback */}
+        {/* User Feedback - FIXED: Bars now on TOP, glow stays behind */}
         <div className="relative bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-12 shadow-2xl overflow-hidden">
           {/* Background glow orbs - now safely BEHIND the chart */}
           <div className="absolute inset-0 pointer-events-none">
@@ -216,5 +217,5 @@ export default function Analytics() {
         </div>
       </div>
     </div>
-  ); 
+  );
 }
