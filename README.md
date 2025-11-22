@@ -89,10 +89,9 @@ You can extend retrieval logic, integrate new embedding models, or plug in your 
 
 **_frontend/src/_**
 * _pages/_ — Chat, Login, Register, Dashboard
-* _components/_ — UI widgets (chunks viewer, bubbles, toggles)
-* _hooks/_ — streaming, auth, state management
-* context/_ — theme + session
-* _services/api.js_ — all HTTP calls
+* _components/_ — UI widgets UI widgets (MessageBubble, ChatBox, RetrievedChunks, DarkModeToggle, etc.)
+*_app/_* Entry + routing
+* _services/api.js_ — all HTTP calls (axios wrapper + interceptors)
 
 The entire UI is modular and can be embedded inside another product.
 
