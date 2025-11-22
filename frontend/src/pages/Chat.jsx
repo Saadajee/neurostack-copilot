@@ -126,7 +126,6 @@ export default function Chat() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-black dark:to-gray-950 flex flex-col relative overflow-hidden">
 
-      {/* Ultra-subtle breathing background — premium only */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div className="absolute top-32 -left-60 w-96 h-96 bg-purple-600/4 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-40 -right-60 w-80 h-80 bg-pink-600/4 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "3s" }} />
@@ -171,7 +170,6 @@ export default function Chat() {
         </div>
       </header>
 
-      {/* Messages — FIXED ALIGNMENT, PERFECT CENTERING */}
       <div className="flex-1 overflow-y-auto px-4 pt-8 pb-40">
         <div className="max-w-4xl mx-auto w-full space-y-6">
 
@@ -224,16 +222,13 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Input Bar — YOUR FAVORITE VERSION, NOW PERFECTLY ALIGNED */}
       <div className="fixed inset-x-0 bottom-6 flex justify-center z-50 pointer-events-none">
         <div className="w-full max-w-4xl px-6 pointer-events-auto">
           <div className="relative">
-            {/* Main container — matches message width */}
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-gray-300/50 dark:border-white/10 rounded-full shadow-xl">
               <ChatBox onSend={addMessage} />
             </div>
 
-            {/* Your subtle glow — untouched */}
             <div className="absolute inset-x-0 -bottom-8 h-16 bg-purple-600/8 blur-3xl rounded-full pointer-events-none opacity-60" />
           </div>
         </div>
