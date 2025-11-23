@@ -1,7 +1,10 @@
 // frontend/src/api/axiosClient.js
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+if (!import.meta.env.VITE_API_BASE) {
+  throw new Error("VITE_API_BASE is not set! Check your .env file");
+}
+const API_BASE = import.meta.env.VITE_API_BASE;
 const client = axios.create({ baseURL: API_BASE, timeout: 90000 });
 
 client.interceptors.request.use(
