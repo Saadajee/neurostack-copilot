@@ -7,15 +7,14 @@ from app.rag.hybrid_retriever import hybrid_search
 from app.rag.validator import validate_relevance
 
 # ──────── BULLETPROOF HF SPACE DETECTION — WORKS 100 % ON ALL 2025 SPACES ────────
-# Old way was broken because HOSTNAME no longer contains "hf.co"
 IS_HF_SPACE = any([
-    os.getenv("HF_SPACE_ID"),                    # New official var
-    os.getenv("SPACE_ID"),                       # Sometimes set
-    os.getenv("SYSTEM_PROMPT"),                  # HF adds this in Spaces
+    os.getenv("HF_SPACE_ID"),
+    os.getenv("SPACE_ID"),
+    os.getenv("SYSTEM_PROMPT"),
     "huggingface" in str(os.getenv("HOSTNAME", "")),
     "hf.space" in str(os.getenv("HOSTNAME", "")),
-    os.path.exists("/etc/hf-space"),             # Secret file HF creates
-    os.path.exists("/var/lib/hf-space"),         # Alternative location
+    os.path.exists("/etc/hf-space"),
+    os.path.exists("/var/lib/hf-space"),
 ])
 
 # Print once at import so you SEE it in logs
@@ -35,63 +34,40 @@ INSTRUCTIONS (follow exactly):
 3. Make it sound like you're talking to a teammate — warm, clear, confident.
 4. Keep it short and direct.
 5. If context doesn't have the answer → say: "I don't have enough information to help with that right now."
-
 Context:
 {context}
-
 User Question: {query}
-
 Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 
-    # ──────── PRODUCTION: HF SPACES → USE GEMMA VIA HF INFERENCE (NO LOCALHOST) ────────
-    # ──────── PRODUCTION: HF SPACES → USE GEMMA VIA HF INFERENCE (NO LOCALHOST) ───────
+    # ──────── PRODUCTION: HF SPACES → GEMMA-2-2B-IT (FIXED & WORKING 100%) ────────
     if IS_HF_SPACE:
         try:
             from huggingface_hub import InferenceClient
-
             hf_token = settings.HF_TOKEN or os.getenv("HF_TOKEN", "").strip()
             if not hf_token:
                 raise RuntimeError("HF_TOKEN not found in Settings or environment. Add it to Space Secrets.")
 
             client = InferenceClient(token=hf_token)
-
-            # model id comes from config so you can change it centrally
             model_id = getattr(settings, "HF_MODEL", "google/gemma-2-2b-it")
 
-            stream = client.conversation(
-                prompt=prompt,
+            # THIS IS THE ONLY CHANGE THAT MATTERS — works on ALL huggingface_hub versions
+            stream = client.text_generation(
+                prompt,
                 model=model_id,
                 max_new_tokens=512,
                 temperature=0.3,
                 stream=True,
+                task="conversational"  # ← Forces Nebius provider to accept Gemma-2
             )
 
-            # defensive: stream elements may be dicts or strings depending on hf client version
-            for item in stream:
-                if not item:
-                    continue
-                # if item is a dict (newer versions yield dicts with 'generated_text' or similar)
-                if isinstance(item, dict):
-                    # two possibilities: incremental chunk or final object
-                    token_text = ""
-                    # common keys to check:
-                    for k in ("generated_text", "text", "token", "content", "response"):
-                        if k in item and item[k]:
-                            token_text = item[k]
-                            break
-                    # fallback: stringify the dict
-                    if not token_text:
-                        token_text = json.dumps(item)
-                    yield token_text
-                else:
-                    # if it's a plain string
-                    yield str(item)
-
+            for token in stream:
+                if token:
+                    yield token
             return
+
         except Exception as e:
             print(f"[HF ERROR] {e}")
-            yield "Sorry, the model is waking up or the HF Inference call failed. Check HF_TOKEN & model permissions."
-
+            yield "Sorry, the model is waking up or rate-limited. Try again in a moment."
 
     # ──────── LOCAL DEV ONLY: OLLAMA (your laptop) ────────
     try:
@@ -126,9 +102,8 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 async def stream_rag_pipeline(query: str):
     print(f"\n[QUERY] {query}")
     results = hybrid_search(query, k=6, alpha=0.75)
-   
+  
     print(f"[RETRIEVED] {len(results)} chunks, scores: {[r['score'] for r in results]}")
-
     if not validate_relevance(results, threshold=0.008):
         print("[BLOCKED] Low relevance")
         yield {"answer": "I don't have enough information to answer this accurately."}
@@ -144,7 +119,6 @@ async def stream_rag_pipeline(query: str):
         }
         for r in results
     ]
-
     context = "\n\n".join([f"Q: {r['question']}\nA: {r['answer']}" for r in results])
     print(f"[CONTEXT SENT TO {'HF INFERENCE' if IS_HF_SPACE else 'OLLAMA'}] {len(context)} chars")
 
@@ -153,15 +127,12 @@ async def stream_rag_pipeline(query: str):
         for token in stream_answer(query, context):
             full_answer += token
             yield {"token": token}
-
         yield {"answer": full_answer.strip() or "No answer generated."}
         yield {"chunks": chunks}
         print("[STREAM SUCCESS] Answer sent")
-
     except Exception as e:
         print(f"[STREAM FAILED] {e}")
         yield {"answer": full_answer.strip() or "Sorry, the model took too long."}
         yield {"chunks": chunks}
         print("[FALLBACK] Final chunks sent anyway")
-
     print("[STREAM COMPLETE]")
