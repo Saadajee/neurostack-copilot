@@ -50,14 +50,12 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
             client = InferenceClient(token=hf_token)
 
             # THIS IS THE ONLY LINE THAT WORKS ON ALL CURRENT HF SPACES
-            stream = client.text_generation(
-                prompt,
+            stream = client.conversational(
                 model="google/gemma-2-2b-it",
+                inputs=prompt,
                 max_new_tokens=512,
                 temperature=0.3,
-                stream=True,
-                # NO 'task' parameter — older huggingface_hub doesn't support it
-                # Nebius accepts it anyway when you send raw prompt + it's a -it model
+                stream=True
             )
 
             for token in stream:
