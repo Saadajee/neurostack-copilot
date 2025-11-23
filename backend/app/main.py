@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import datetime, date
 
 # ───── Import your routes ─────
-from app.routes import auth_routes, rag_routes
+from .routes import auth_routes, rag_routes
 from app.core.security import decode_token
 
 # ───── Import retriever to trigger loading at startup ─────
@@ -14,14 +14,10 @@ from app.rag.hybrid_retriever import faiss_index, bm25_data
 
 app = FastAPI(title="Neurostack Copilot", version="1.0.0")
 
-# ───── CORS ─────
+# ───── CORS — FIXED FOR VERCEL + LOCAL + EVERYTHING ─────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://192.168.0.104:5173",
-    ],
+    allow_origins=["*"],  # ← This allows your live Vercel URL + localhost + everything
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
