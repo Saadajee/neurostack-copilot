@@ -4,15 +4,13 @@ import axios from "axios";
 const isDev = import.meta.env.DEV;
 
 const client = axios.create({
-  // LOCAL DEV → uses your Vite proxy (so you can keep the proxy in vite.config.js)
-  // PRODUCTION (Vercel) → hits your live HF Space directly
-  baseURL: isDev
-    ? "http://127.0.0.1:8000"                                 // ← dev (uses proxy below)
-    : "https://saadajee-neurostack-copilot.hf.space",       // ← PRODUCTION (live)
-  timeout: 30000,
+  // In development: hit your local FastAPI backend
+  // In HF Spaces production: use relative URL → same domain (automatically port 7860)
+  baseURL: isDev ? "http://localhost:8000" : "", // ← empty string = relative URLs in production
+  timeout: 60000,
 });
 
-// Auto-add Bearer token
+// Auto-add JWT token if present
 client.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
