@@ -1,16 +1,13 @@
 // frontend/src/api/axiosClient.js
 import axios from "axios";
 
-const isDev = import.meta.env.DEV;
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 const client = axios.create({
-  // In development: hit your local FastAPI backend
-  // In HF Spaces production: use relative URL → same domain (automatically port 7860)
-  baseURL: isDev ? "http://localhost:8000" : "", // ← empty string = relative URLs in production
+  baseURL: API_BASE,        // ← This is now correct EVERYWHERE
   timeout: 60000,
 });
 
-// Auto-add JWT token if present
 client.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
