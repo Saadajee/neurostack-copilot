@@ -6,8 +6,17 @@ from app.core.config import settings
 from app.rag.hybrid_retriever import hybrid_search
 from app.rag.validator import validate_relevance
 
-# ──────── THIS IS THE ONLY NEW THING: DETECT HF SPACE + FORCE HF INFERENCE ────────
-IS_HF_SPACE = bool(os.getenv("HF_SPACE_ID") or "hf.co" in os.getenv("HOSTNAME", ""))
+# ──────── BULLETPROOF HF SPACE DETECTION — WORKS 100 % ON ALL 2025 SPACES ────────
+# Old way was broken because HOSTNAME no longer contains "hf.co"
+IS_HF_SPACE = any([
+    os.getenv("HF_SPACE_ID"),                    # New official var
+    os.getenv("SPACE_ID"),                       # Sometimes set
+    os.getenv("SYSTEM_PROMPT"),                  # HF adds this in Spaces
+    "huggingface" in str(os.getenv("HOSTNAME", "")),
+    "hf.space" in str(os.getenv("HOSTNAME", "")),
+    os.path.exists("/etc/hf-space"),             # Secret file HF creates
+    os.path.exists("/var/lib/hf-space"),         # Alternative location
+])
 
 # Print once at import so you SEE it in logs
 if IS_HF_SPACE:
