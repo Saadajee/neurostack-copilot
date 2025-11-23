@@ -1,15 +1,25 @@
 # backend/app/rag/pipeline.py
 import requests
 import json
+import os
 from app.core.config import settings
 from app.rag.hybrid_retriever import hybrid_search
 from app.rag.validator import validate_relevance
 
-OLLAMA_URL = f"{settings.OLLAMA_BASE_URL}/api/generate"
+# ──────── THIS IS THE ONLY NEW THING: DETECT HF SPACE + FORCE HF INFERENCE ────────
+IS_HF_SPACE = bool(os.getenv("HF_SPACE_ID") or "hf.co" in os.getenv("HOSTNAME", ""))
+
+# Print once at import so you SEE it in logs
+if IS_HF_SPACE:
+    print("\n" + "="*80)
+    print("HUGGING FACE SPACE DETECTED → USING google/gemma-2-2b-it (NO OLLAMA)")
+    print("="*80 + "\n")
+else:
+    print("Local dev → using Ollama")
+
 
 def stream_answer(query: str, context: str):
     prompt = f"""You are Neurostack Copilot — a world-class, friendly IT support assistant.
-
 INSTRUCTIONS (follow exactly):
 1. Use ONLY the information from the context below.
 2. NEVER copy the FAQ answer word-for-word. Always rephrase it naturally and conversationally.
@@ -24,15 +34,66 @@ User Question: {query}
 
 Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 
+    # ──────── PRODUCTION: HF SPACES → USE GEMMA VIA HF INFERENCE (NO LOCALHOST) ────────
+    # ──────── PRODUCTION: HF SPACES → USE GEMMA VIA HF INFERENCE (NO LOCALHOST) ───────
+    if IS_HF_SPACE:
+        try:
+            from huggingface_hub import InferenceClient
+
+            hf_token = settings.HF_TOKEN or os.getenv("HF_TOKEN", "").strip()
+            if not hf_token:
+                raise RuntimeError("HF_TOKEN not found in Settings or environment. Add it to Space Secrets.")
+
+            client = InferenceClient(token=hf_token)
+
+            # model id comes from config so you can change it centrally
+            model_id = getattr(settings, "HF_MODEL", "google/gemma-2-2b-it")
+
+            stream = client.text_generation(
+                prompt=prompt,
+                model=model_id,
+                max_new_tokens=512,
+                temperature=0.3,
+                stream=True,
+            )
+
+            # defensive: stream elements may be dicts or strings depending on hf client version
+            for item in stream:
+                if not item:
+                    continue
+                # if item is a dict (newer versions yield dicts with 'generated_text' or similar)
+                if isinstance(item, dict):
+                    # two possibilities: incremental chunk or final object
+                    token_text = ""
+                    # common keys to check:
+                    for k in ("generated_text", "text", "token", "content", "response"):
+                        if k in item and item[k]:
+                            token_text = item[k]
+                            break
+                    # fallback: stringify the dict
+                    if not token_text:
+                        token_text = json.dumps(item)
+                    yield token_text
+                else:
+                    # if it's a plain string
+                    yield str(item)
+
+            return
+        except Exception as e:
+            print(f"[HF ERROR] {e}")
+            yield "Sorry, the model is waking up or the HF Inference call failed. Check HF_TOKEN & model permissions."
+
+
+    # ──────── LOCAL DEV ONLY: OLLAMA (your laptop) ────────
     try:
         response = requests.post(
-            OLLAMA_URL,
+            f"{settings.OLLAMA_BASE_URL}/api/generate",
             json={
                 "model": settings.OLLAMA_MODEL,
                 "prompt": prompt,
                 "stream": True,
                 "options": {
-                    "temperature": 0.2,   # Natural but safe
+                    "temperature": 0.2,
                     "num_ctx": 4096,
                 }
             },
@@ -40,7 +101,6 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
             timeout=120
         )
         response.raise_for_status()
-
         for line in response.iter_lines():
             if line:
                 data = json.loads(line)
@@ -49,7 +109,6 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
                 token = data.get("response", "")
                 if token.strip():
                     yield token
-
     except Exception as e:
         print(f"[OLLAMA ERROR] {e}")
         yield "Sorry, I'm having trouble connecting to the model right now. Please try again in a moment."
@@ -58,7 +117,7 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 async def stream_rag_pipeline(query: str):
     print(f"\n[QUERY] {query}")
     results = hybrid_search(query, k=6, alpha=0.75)
-    
+   
     print(f"[RETRIEVED] {len(results)} chunks, scores: {[r['score'] for r in results]}")
 
     if not validate_relevance(results, threshold=0.008):
@@ -78,7 +137,7 @@ async def stream_rag_pipeline(query: str):
     ]
 
     context = "\n\n".join([f"Q: {r['question']}\nA: {r['answer']}" for r in results])
-    print(f"[CONTEXT SENT TO OLLAMA] {len(context)} chars")
+    print(f"[CONTEXT SENT TO {'HF INFERENCE' if IS_HF_SPACE else 'OLLAMA'}] {len(context)} chars")
 
     full_answer = ""
     try:
@@ -86,14 +145,12 @@ async def stream_rag_pipeline(query: str):
             full_answer += token
             yield {"token": token}
 
-        # SUCCESS: send final answer + chunks
         yield {"answer": full_answer.strip() or "No answer generated."}
         yield {"chunks": chunks}
         print("[STREAM SUCCESS] Answer sent")
 
     except Exception as e:
         print(f"[STREAM FAILED] {e}")
-        # EVEN IF STREAMING DIES — SEND FINAL DATA
         yield {"answer": full_answer.strip() or "Sorry, the model took too long."}
         yield {"chunks": chunks}
         print("[FALLBACK] Final chunks sent anyway")
