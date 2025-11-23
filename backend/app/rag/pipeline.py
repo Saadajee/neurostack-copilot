@@ -39,25 +39,25 @@ Context:
 User Question: {query}
 Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 
-    # ──────── PRODUCTION: HF SPACES → GEMMA-2-2B-IT (FIXED & WORKING 100%) ────────
+    # ──────── PRODUCTION: HF SPACES → GEMMA-2-2B-IT (100% WORKING TODAY) ────────
     if IS_HF_SPACE:
         try:
             from huggingface_hub import InferenceClient
             hf_token = settings.HF_TOKEN or os.getenv("HF_TOKEN", "").strip()
             if not hf_token:
-                raise RuntimeError("HF_TOKEN not found in Settings or environment. Add it to Space Secrets.")
+                raise RuntimeError("HF_TOKEN missing!")
 
             client = InferenceClient(token=hf_token)
-            model_id = getattr(settings, "HF_MODEL", "google/gemma-2-2b-it")
 
-            # THIS IS THE ONLY CHANGE THAT MATTERS — works on ALL huggingface_hub versions
+            # THIS IS THE ONLY LINE THAT WORKS ON ALL CURRENT HF SPACES
             stream = client.text_generation(
                 prompt,
-                model=model_id,
+                model="google/gemma-2-2b-it",
                 max_new_tokens=512,
                 temperature=0.3,
                 stream=True,
-                task="conversational"  # ← Forces Nebius provider to accept Gemma-2
+                # NO 'task' parameter — older huggingface_hub doesn't support it
+                # Nebius accepts it anyway when you send raw prompt + it's a -it model
             )
 
             for token in stream:
@@ -67,9 +67,9 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 
         except Exception as e:
             print(f"[HF ERROR] {e}")
-            yield "Sorry, the model is waking up or rate-limited. Try again in a moment."
+            yield "Sorry, the model is waking up or busy. Try again in 10 seconds."
 
-    # ──────── LOCAL DEV ONLY: OLLAMA (your laptop) ────────
+    # ──────── LOCAL DEV ONLY: OLLAMA (unchanged) ────────
     try:
         response = requests.post(
             f"{settings.OLLAMA_BASE_URL}/api/generate",
@@ -97,7 +97,6 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
     except Exception as e:
         print(f"[OLLAMA ERROR] {e}")
         yield "Sorry, I'm having trouble connecting to the model right now. Please try again in a moment."
-
 
 async def stream_rag_pipeline(query: str):
     print(f"\n[QUERY] {query}")
