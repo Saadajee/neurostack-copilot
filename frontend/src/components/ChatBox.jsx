@@ -1,13 +1,13 @@
 // frontend/src/components/ChatBox.jsx
 import { useState, useRef, useEffect } from "react";
-import client from "../api/axiosClient";   // ← ADD THIS
+import client from "../api/axiosClient"; // ← This is the key — uses VITE_API_BASE
 
 export default function ChatBox({ onSend }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef(null);
 
-  // Auto-grow
+  // Auto-grow textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -25,35 +25,30 @@ export default function ChatBox({ onSend }) {
     onSend({ query, answer: "", chunks: [], streaming: true });
     setLoading(true);
 
-    const token = localStorage.getItem("token");
-    try {
-      await fetch("/increment-query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      });
-    } catch (err) {
+    // 1. Increment query counter (fire and forget — your counter stays intact)
+    client.post("/increment-query").catch(() => {
       console.log("Query counter failed (not critical)");
-    }
+    });
 
     let fullAnswer = "";
     let chunks = [];
 
     try {
-      const response = await fetch("/rag/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ query }),
-      });
+      // 2. Main RAG query — now goes to correct HF backend
+      const response = await client.post("/rag/query", { query });
 
-      if (!response.ok) throw new Error("Network error");
-      const reader = response.body.getReader();
+      if (!response.data || !response.data.body) {
+        throw new Error("No streaming body");
+      }
+
+      const reader = response.data.body.getReader();
       const decoder = new TextDecoder();
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const text = decoder.decode(value);
+        const text = decoder.decode(value, { stream: true });
         const lines = text.split("\n");
 
         for (const line of lines) {
@@ -71,17 +66,24 @@ export default function ChatBox({ onSend }) {
                 fullAnswer += data.token;
                 onSend({ query, answer: fullAnswer, chunks, streaming: true });
               }
-              if (data.chunks) chunks = data.chunks;
+              if (data.chunks) {
+                chunks = data.chunks;
+              }
               if (data.answer) {
                 fullAnswer = data.answer;
                 onSend({ query, answer: fullAnswer, chunks, streaming: false });
               }
-            } catch (e) {}
+            } catch (e) {
+              // Ignore malformed JSON lines
+            }
           }
         }
       }
+
+      // Final update when stream ends normally
       onSend({ query, answer: fullAnswer || "Done.", chunks, streaming: false });
     } catch (err) {
+      console.error("RAG query failed:", err);
       onSend({
         query,
         answer: "Server is offline or unreachable.",
@@ -95,7 +97,6 @@ export default function ChatBox({ onSend }) {
 
   return (
     <form onSubmit={send} className="flex items-center w-full px-6 py-4">
-      {/* Perfect text color & placeholder in both modes */}
       <textarea
         ref={textareaRef}
         value={input}
@@ -110,15 +111,14 @@ export default function ChatBox({ onSend }) {
         rows={1}
         disabled={loading}
         autoFocus
-        className="flex-1 resize-none bg-transparent 
-                   text-gray-900 dark:text-white 
-                   placeholder-gray-500 dark:placeholder-gray-400 
+        className="flex-1 resize-none bg-transparent
+                   text-gray-900 dark:text-white
+                   placeholder-gray-500 dark:placeholder-gray-400
                    focus:outline-none text-base leading-relaxed max-h-32 pr-16
                    scrollbar-hide"
         style={{ scrollbarWidth: "none" }}
       />
 
-      {/* Send button — visible & beautiful in light + dark */}
       <button
         type="submit"
         disabled={loading || !input.trim()}
