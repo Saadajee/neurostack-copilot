@@ -46,4 +46,3 @@ else:
     print("LOCAL DEV MODE — USING OLLAMA (localhost:11434)")
     print("="*80 + "\n")
 
-print(f"[HF] Using model={model_id} with HF_TOKEN present: {'YES' if bool(hf_token) else 'NO'}")
