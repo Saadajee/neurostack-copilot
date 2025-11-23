@@ -20,7 +20,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://192.168.0.104:5173",
         # ← Add your live Vercel URL here when ready, e.g.:
-        # "https://neurostack-copilot.vercel.app",
+        "https://neurostack-copilot-git-main-saads-projects-913ee2c0.vercel.app"
         # "https://your-custom-domain.com",
     ],
     allow_credentials=True,
