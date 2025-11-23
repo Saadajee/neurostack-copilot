@@ -1,5 +1,6 @@
 // frontend/src/components/ChatBox.jsx
 import { useState, useRef, useEffect } from "react";
+import client from "../api/axiosClient";   // ← ADD THIS
 
 export default function ChatBox({ onSend }) {
   const [input, setInput] = useState("");
