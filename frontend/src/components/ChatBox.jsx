@@ -26,7 +26,7 @@ export default function ChatBox({ onSend }) {
 
     const token = localStorage.getItem("token");
     try {
-      await fetch("http://127.0.0.1:8000/increment-query", {
+      await fetch("/increment-query", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
@@ -38,7 +38,7 @@ export default function ChatBox({ onSend }) {
     let chunks = [];
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/rag/query", {
+      const response = await fetch("/rag/query", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ query }),
