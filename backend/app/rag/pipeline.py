@@ -58,7 +58,7 @@ Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
             # model id comes from config so you can change it centrally
             model_id = getattr(settings, "HF_MODEL", "google/gemma-2-2b-it")
 
-            stream = client.text_generation(
+            stream = client.conversation(
                 prompt=prompt,
                 model=model_id,
                 max_new_tokens=512,
