@@ -33,66 +33,68 @@ export default function ChatBox({ onSend }) {
     let fullAnswer = "";
     let chunks = [];
 
-    try {
-      // 2. Main RAG query — now goes to correct HF backend
-      const response = await client.post("/rag/query", { query });
+      try {
+        const response = await client.post("/rag/query", { query }, {
+          responseType: "stream"   // ← THIS IS THE KEY LINE
+        });
 
-      if (!response.data || !response.data.body) {
-        throw new Error("No streaming body");
-      }
+        const stream = response.data;
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-      const reader = response.data.body.getReader();
-      const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let boundary = buffer.indexOf("\n");
+          while (boundary !== -1) {
+            const line = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 1);
 
-        const text = decoder.decode(value, { stream: true });
-        const lines = text.split("\n");
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6).trim();
-            if (dataStr === "[DONE]") {
-              onSend({ query, answer: fullAnswer, chunks, streaming: false });
-              setLoading(false);
-              return;
-            }
-
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.token) {
-                fullAnswer += data.token;
-                onSend({ query, answer: fullAnswer, chunks, streaming: true });
-              }
-              if (data.chunks) {
-                chunks = data.chunks;
-              }
-              if (data.answer) {
-                fullAnswer = data.answer;
+            if (line.startsWith("data: ")) {
+              const dataStr = line.slice(6).trim();
+              if (dataStr === "[DONE]") {
                 onSend({ query, answer: fullAnswer, chunks, streaming: false });
+                setLoading(false);
+                return;
               }
-            } catch (e) {
-              // Ignore malformed JSON lines
+              try {
+                const data = JSON.parse(dataStr);
+                if (data.token) {
+                  fullAnswer += data.token;
+                  onSend({ query, answer: fullAnswer, chunks, streaming: true });
+                }
+                if (data.chunks) {
+                  chunks = data.chunks;
+                }
+                if (data.answer) {
+                  fullAnswer = data.answer;
+                  onSend({ query, answer: fullAnswer, chunks, streaming: false });
+                }
+              } catch (e) {
+                // ignore junk lines
+              }
             }
+            boundary = buffer.indexOf("\n");
           }
         }
-      }
 
-      // Final update when stream ends normally
-      onSend({ query, answer: fullAnswer || "Done.", chunks, streaming: false });
-    } catch (err) {
-      console.error("RAG query failed:", err);
-      onSend({
-        query,
-        answer: "Server is offline or unreachable.",
-        chunks: [],
-        streaming: false,
-      });
-    } finally {
-      setLoading(false);
-    }
+        // Final fallback
+        onSend({ query, answer: fullAnswer || "No response.", chunks, streaming: false });
+
+      } catch (err) {
+        console.error("RAG query failed:", err);
+        onSend({
+          query,
+          answer: "Server is offline or unreachable.",
+          chunks: [],
+          streaming: false,
+        });
+      } finally {
+        setLoading(false);
+      }
   };
 
   return (
