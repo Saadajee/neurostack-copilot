@@ -11,8 +11,10 @@ export default function Analytics() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
+    const API_BASE = import.meta.env.VITE_API_BASE;
 
-    if (!token) {
+    // If no token or offline, show fake stats
+    if (!token || !API_BASE) {
       setStats({
         queries_today: 47,
         total_queries: 892,
@@ -24,8 +26,18 @@ export default function Analytics() {
       return;
     }
 
-    fetch("/analytics", { method: "GET", headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" } })
-      .then(async (r) => { if (!r.ok) throw new Error("Unauthorized"); return r.json(); })
+    // CORRECT: Full URL to your HF Space backend
+    fetch(`${API_BASE}/analytics`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Failed");
+        return r.json();
+      })
       .then((data) => {
         setStats({
           queries_today: data.queries_today ?? 47,
@@ -36,22 +48,29 @@ export default function Analytics() {
           bad_feedback: data.bad_feedback ?? 4,
         });
       })
-      .catch(() => {
-        setStats({ queries_today: 47, total_queries: 892, percent_with_sources: 96, avg_relevance: 0.91, good_feedback: 38, bad_feedback: 4 });
+      .catch((err) => {
+        console.log("Analytics failed, using demo data");
+        setStats({
+          queries_today: 47,
+          total_queries: 892,
+          percent_with_sources: 96,
+          avg_relevance: 0.91,
+          good_feedback: 38,
+          bad_feedback: 4,
+        });
       });
   }, []);
 
   useEffect(() => {
     if (stats) {
       const timers = Object.keys(stats).map((key) => {
-        if (typeof stats[key] === "number" && key !== "avg_relevance") {
+        if (typeof stats[key] === "number" && key !== "avg_relevance" && key !== "percent_with_sources") {
           let start = 0;
           const end = stats[key];
           const duration = 1800;
           const stepTime = 20;
           const steps = duration / stepTime;
           const increment = end / steps;
-
           const timer = setInterval(() => {
             start += increment;
             if (start >= end) {
@@ -81,7 +100,6 @@ export default function Analytics() {
   }
 
   const display = { ...stats, ...animatedStats };
-
   const chartData = [
     { name: "Helpful", value: stats.good_feedback, fill: "#10b981" },
     { name: "Needs Work", value: stats.bad_feedback, fill: "#ef4444" },
@@ -101,13 +119,10 @@ export default function Analytics() {
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
-      {/* Epic Background */}
       <div className="fixed inset-0 bg-gradient-to-br from-purple-900/30 via-black to-indigo-900/30" />
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(168,85,247,0.25),transparent_60%)]" />
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(236,72,153,0.2),transparent_60%)]" />
-
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
         <div className="flex items-center justify-between mb-16">
           <div>
             <h1 className="text-7xl font-extrabold bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 bg-clip-text text-transparent animate-pulse">
@@ -126,7 +141,6 @@ export default function Analytics() {
           </button>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-20">
           {[
             { icon: MessageCircle, label: "Queries Today", value: display.queries_today ?? stats.queries_today, grad: "from-cyan-400 to-blue-600" },
@@ -134,11 +148,7 @@ export default function Analytics() {
             { icon: Target, label: "With Sources", value: `${stats.percent_with_sources}%`, grad: "from-emerald-400 to-teal-600" },
             { icon: TrendingUp, label: "Avg Relevance", value: stats.avg_relevance, grad: "from-orange-500 to-red-600" },
           ].map((s, i) => (
-            <div
-              key={i}
-              className="group relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-3xl border border-white/20 rounded-3xl p-8 hover:scale-105 transition-all duration-700 overflow-hidden shadow-2xl hover:shadow-purple-500/40"
-              style={{ animationDelay: `${i * 150}ms` }}
-            >
+            <div key={i} className="group relative bg-gradient-to-br from-white/5 to-white/2 backdrop-blur-3xl border border-white/20 rounded-3xl p-8 hover:scale-105 transition-all duration-700 overflow-hidden shadow-2xl hover:shadow-purple-500/40">
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000">
                 <div className={`absolute inset-0 bg-gradient-to-r ${s.grad} blur-xl scale-150`} />
               </div>
@@ -159,15 +169,11 @@ export default function Analytics() {
           ))}
         </div>
 
-        {/* User Feedback - FIXED: Bars now on TOP, glow stays behind */}
         <div className="relative bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-12 shadow-2xl overflow-hidden">
-          {/* Background glow orbs - now safely BEHIND the chart */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute top-10 left-10 w-72 h-72 bg-green-500/20 rounded-full blur-3xl" />
             <div className="absolute bottom-10 right-10 w-96 h-96 bg-red-500/20 rounded-full blur-3xl" />
           </div>
-
-          {/* Chart container with higher z-index */}
           <div className="relative z-20">
             <div className="flex items-center gap-6 mb-10">
               <div className="p-5 bg-gradient-to-br from-green-500 to-emerald-700 rounded-3xl shadow-2xl shadow-green-500/50">
@@ -180,7 +186,6 @@ export default function Analytics() {
                 <p className="text-gray-300 text-xl mt-2">People are obsessed with your answers</p>
               </div>
             </div>
-
             <div className="h-96 mt-12 bg-black/30 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/10">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 30, right: 40, left: 20, bottom: 20 }}>
@@ -190,19 +195,12 @@ export default function Analytics() {
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
                   <Bar dataKey="value" barSize={180} radius={[40, 40, 0, 0]}>
                     {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.fill}
-                        stroke={entry.fill}
-                        strokeWidth={4}
-                        style={{ filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.6))" }}
-                      />
+                      <Cell key={`cell-${index}`} fill={entry.fill} stroke={entry.fill} strokeWidth={4} style={{ filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.6))" }} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-
             <div className="flex justify-center gap-20 mt-12 text-2xl font-bold z-30">
               <div className="flex items-center gap-4 hover:scale-110 transition">
                 <div className="w-8 h-8 bg-green-500 rounded-full shadow-lg shadow-green-500/70 animate-pulse" />
