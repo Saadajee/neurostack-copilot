@@ -1,0 +1,26 @@
+# Core
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+python-dotenv==1.1.1
+
+# Auth & DB – FINAL BULLETPROOF VERSION
+passlib==1.7.4
+argon2-cffi==23.1.0
+python-jose[cryptography]==3.3.0
+pyjwt==2.10.1
+sqlalchemy==2.0.35
+# ← NO python-multipart duplicate, NO passlib extras, NO chance of bcrypt
+
+# LangChain + RAG stack (latest stable that works on HF)
+langchain==0.3.27
+langchain-community==0.3.29
+langchain-ollama==0.3.10
+langchain-text-splitters==0.3.11
+faiss-cpu==1.9.0          # 1.12.0 has CUDA issues on HF → 1.9.0 is rock-solid
+rank-bm25==0.2.2
+sentence-transformers==3.1.1   # 5.1.1 fails with torch 2.4 on HF → 3.1.1 is perfect
+
+# Ollama client
+ollama==0.6.0
+groq==0.36.0   # or latest stable version
