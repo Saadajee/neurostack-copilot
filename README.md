@@ -9,6 +9,9 @@ Designed for engineering teams, product docs, customer support, and internal kno
 
 Built by: Saad (November 2025)
 
+**Live Demo**: [https://neurostack-copilot.vercel.app](https://neurostack-copilot.vercel.app)  
+**Backend (FastAPI + Groq/LLM)**: [https://saadajee-neurostack-copilot.hf.space](https://saadajee-neurostack-copilot.hf.space)
+
 ## Features
 - Hybrid Retrieval: FAISS (semantic) + BM25 (keyword) with custom re-ranking
 - Real-time Streaming Answers
@@ -20,17 +23,16 @@ Built by: Saad (November 2025)
 - Secure Multi-User Support: JWT authentication, user-isolated sessions, protected routes
 
 ## Tech Stack
-
 | Layer         | Technologies                                      |
 |---------------|---------------------------------------------------|
 | Frontend      | React 18, Vite, Tailwind CSS, Recharts, lucide-react |
 | Backend       | FastAPI, LangChain, sentence-transformers, FAISS, BM25 |
-| LLM           | Ollama (default: gemma3:4b, fully local)          |
-| Vector Store  | FAISS (in-memory, rebuilt on demand)              |
+| LLM           | Ollama (local) / Groq (cloud demo)                |
+| Vector Store  | FAISS (in-memory)                                 |
 | Auth          | JWT + SQLite                                      |
-| Storage       | Local JSON + SQLite (feedback + user data)                         |
+| Hosting       | **Frontend**: Vercel<br>**Backend**: Hugging Face Spaces |
 
-# Quick Start
+# Quick Start (For local Deployment)
 
 ```
 git clone https://github.com/yourusername/neurostack-copilot.git
@@ -105,16 +107,15 @@ The entire UI is modular and can be embedded inside another product.
 
 These will be addressed in future updates.
 
-### Contributing
+## Contributing
+Pull requests are very welcome and will be merged fast! The biggest impact you can make right now:
 
-Pull requests and issues are welcome!
-You can contribute by:
-
-* Improving retrieval accuracy
-* Adding new UI components
-* Optimizing chunking strategies
-* Expanding analytics features
-* Improving documentation
+- **Smarter chunking & overlap strategies** – recursive, semantic, or metadata-aware splitting for even higher retrieval precision  
+- **Persistent + scalable vector stores** – disk-backed FAISS, PGVector, Qdrant, or Chroma integration for million-document scale  
+- **Advanced analytics & time-series dashboards** – query heatmaps, per-user usage, accuracy over time, leaderboards  
+- **Role-based access control (RBAC)** – admin, editor, viewer roles + team/organization support  
+- **New UI components & themes** – light mode polish, markdown export, answer sharing, mobile PWA improvements  
+- **Pluggable LLM & embedding backends** – easy switching between Ollama, Groq, OpenAI, Anthropic, Cohere, Voyage, etc.
 
 A full contribution guide will be added soon.
 
@@ -122,7 +123,7 @@ A full contribution guide will be added soon.
 
 For bugs, feature requests, or integration help:
 
-📧 [saadimra7667@gmail.com](saadimran7667@gmail.com)
+📧 [saadimra7667@gmail.com](saadimran7667@gmail.com) happy to help deploy, extend, or debug.
 
 Happy to collaborate, debug, or help you extend the project further.
 
