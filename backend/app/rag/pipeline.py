@@ -5,6 +5,8 @@ import os
 from app.core.config import settings
 from app.rag.hybrid_retriever import hybrid_search
 from app.rag.validator import validate_relevance
+from groq import Groq
+
 
 # ──────── BULLETPROOF HF SPACE DETECTION — WORKS 100 % ON ALL 2025 SPACES ────────
 IS_HF_SPACE = any([
@@ -39,118 +41,51 @@ Context:
 User Question: {query}
 Answer in a natural, human way (do NOT repeat the FAQ verbatim):"""
 
+
     # ----------------------------------------------------------------
-    # Production: on HF Spaces we will call Groq Cloud (streaming)
+    # Production: on HF Spaces → USE OFFICIAL GROQ PYTHON SDK
     # ----------------------------------------------------------------
     if IS_HF_SPACE:
         try:
-            # Read Groq config from env — set these in HF Secrets
+            from groq import Groq
+
             GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
             GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant").strip()
-            GROQ_API_URL = os.getenv("GROQ_API_URL", "https://api.groq.cloud/v1").rstrip("/")
 
             if not GROQ_API_KEY:
-                raise RuntimeError("GROQ_API_KEY missing from environment (add to HF Spaces secrets)")
+                raise RuntimeError("GROQ_API_KEY missing from environment.")
 
-            headers = {
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json",
-                # Some Groq installations expect an explicit user-agent
-                "User-Agent": "neurostack-copilot/1.0"
-            }
+            # Initialize Groq client
+            client = Groq(api_key=GROQ_API_KEY)
 
-            payload = {
-                # Use the chat/completions style to be compatible with many Groq endpoints
-                "model": GROQ_MODEL,
-                "messages": [
+            # Create a streaming chat completion
+            completion = client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[
                     {"role": "user", "content": prompt}
                 ],
-                "max_tokens": 512,
-                "temperature": 0.3,
-                "stream": True
-            }
+                temperature=0.3,
+                max_completion_tokens=512,
+                stream=True
+            )
 
-            stream_url = f"{GROQ_API_URL}/chat/completions"
-            resp = requests.post(stream_url, headers=headers, json=payload, stream=True, timeout=120)
-            # Raise for auth / 4xx / 5xx
-            resp.raise_for_status()
+            # Stream tokens exactly like your Ollama stream
+            for chunk in completion:
+                token = (
+                    chunk.choices[0].delta.get("content")
+                    if chunk.choices
+                    else None
+                )
+                if token:
+                    yield token
 
-            # Parse streaming response robustly:
-            # - Some endpoints send SSE lines like: "data: {...}\n\n"
-            # - Some send newline-delimited JSON
-            # We'll handle both.
-            for raw_line in resp.iter_lines(decode_unicode=True):
-                if raw_line is None:
-                    continue
-                line = raw_line.strip()
-                if not line:
-                    continue
-
-                # SSE-style "data: " prefix
-                if line.startswith("data:"):
-                    line = line[len("data:"):].strip()
-
-                # Some servers send keepalive: "[DONE]" — stop on that
-                if line == "[DONE]":
-                    break
-
-                # Try to parse JSON; ignore parse errors gracefully
-                try:
-                    data = json.loads(line)
-                except Exception:
-                    # If it's not JSON, yield raw line as a token fallback
-                    token_text = line
-                    if token_text:
-                        yield token_text
-                    continue
-
-                # Robust extraction of token text across possible shapes:
-                token_text = ""
-                # Common "choices" streaming shape (chat-like)
-                try:
-                    # e.g., {"choices":[{"delta":{"content":"Hello"}}, ...]}
-                    choices = data.get("choices") if isinstance(data, dict) else None
-                    if choices and len(choices) > 0:
-                        # Collect content from delta or message or text fields
-                        choice = choices[0]
-                        if isinstance(choice, dict):
-                            # delta -> content
-                            delta = choice.get("delta", {})
-                            if isinstance(delta, dict):
-                                token_text = delta.get("content", "") or token_text
-
-                            # older shapes: choice['text']
-                            token_text = token_text or choice.get("text", "") or token_text
-
-                            # chat message full
-                            message = choice.get("message") or {}
-                            if isinstance(message, dict):
-                                token_text = token_text or message.get("content", "") or token_text
-                except Exception:
-                    token_text = token_text or ""
-
-                # Some providers return 'text' at top-level
-                if not token_text:
-                    token_text = data.get("text", "") or data.get("response", "") or ""
-
-                # Another possible field: 'delta' top-level
-                if not token_text:
-                    top_delta = data.get("delta")
-                    if isinstance(top_delta, dict):
-                        token_text = top_delta.get("content", "") or ""
-
-                # If we extracted something, yield it
-                if token_text and token_text.strip():
-                    yield token_text
-            # End stream loop
             return
 
         except Exception as e:
-            # Keep the log style you already use
             print(f"[GROQ ERROR] {e}")
-            # Yield a friendly fallback token so frontend doesn't hang
-            yield "Sorry, the model is waking up or busy. Try again in 10 seconds."
+            yield "Sorry, Groq is waking up or busy. Try again in a few seconds."
             return
+
 
     # ----------------------------------------------------------------
     # Local dev: Ollama (unchanged)
