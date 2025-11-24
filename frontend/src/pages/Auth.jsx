@@ -11,20 +11,36 @@ export default function Auth({ onLogin }) {
   async function submit(e) {
     e.preventDefault();
     setError("");
-
+  
     try {
       const endpoint = isLogin ? "/auth/login" : "/auth/register";
-
       const res = await client.post(endpoint, {
         username: email,
         password,
       });
-
-      localStorage.setItem("token", res.data.access_token);
+  
+      const token = res.data.access_token;
+  
+      // IF REGISTERING A NEW USER → FULL WIPE (except theme email)
+      if (!isLogin) {
+        // Clear ALL old user data — fresh start!
+        localStorage.clear();
+  
+        // But keep theme preference linked to this email
+        localStorage.setItem("last_email_for_theme", email);
+      }
+  
+      // Always save fresh login data
+      localStorage.setItem("token", token);
       localStorage.setItem("email", email);
-      localStorage.setItem("last_email_for_theme", email); // ← your genius line, preserved
-
+  
+      // If logging in, preserve theme from previous session of this email
+      if (isLogin) {
+        localStorage.setItem("last_email_for_theme", email);
+      }
+  
       onLogin({ email });
+  
     } catch (err) {
       setError(
         err.response?.data?.detail ||
