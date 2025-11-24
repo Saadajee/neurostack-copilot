@@ -9,11 +9,11 @@ export default function Analytics() {
   const [animatedStats, setAnimatedStats] = useState({});
   const navigate = useNavigate();
 
+  // 1. FETCH ANALYTICS FROM BACKEND
   useEffect(() => {
     const token = localStorage.getItem("token");
     const API_BASE = import.meta.env.VITE_API_BASE;
 
-    // If no token or offline, show fake stats
     if (!token || !API_BASE) {
       setStats({
         queries_today: 47,
@@ -26,11 +26,10 @@ export default function Analytics() {
       return;
     }
 
-    // CORRECT: Full URL to your HF Space backend
     fetch(`${API_BASE}/analytics`, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       }
     })
@@ -48,7 +47,7 @@ export default function Analytics() {
           bad_feedback: data.bad_feedback ?? 4,
         });
       })
-      .catch((err) => {
+      .catch(() => {
         console.log("Analytics failed, using demo data");
         setStats({
           queries_today: 47,
@@ -61,6 +60,22 @@ export default function Analytics() {
       });
   }, []);
 
+  // 2. LISTEN FOR FEEDBACK FROM ANY MESSAGE BUBBLE & UPDATE GRAPH INSTANTLY
+  useEffect(() => {
+    const handleFeedbackUpdate = (e) => {
+      const rating = e.detail.rating;
+      setStats(prev => ({
+        ...prev,
+        good_feedback: rating === "good" ? (prev.good_feedback || 0) + 1 : prev.good_feedback,
+        bad_feedback: rating === "bad" ? (prev.bad_feedback || 0) + 1 : prev.bad_feedback,
+      }));
+    };
+
+    window.addEventListener("feedback-updated", handleFeedbackUpdate);
+    return () => window.removeEventListener("feedback-updated", handleFeedbackUpdate);
+  }, []);
+
+  // 3. ANIMATED COUNTERS
   useEffect(() => {
     if (stats) {
       const timers = Object.keys(stats).map((key) => {
@@ -74,10 +89,10 @@ export default function Analytics() {
           const timer = setInterval(() => {
             start += increment;
             if (start >= end) {
-              setAnimatedStats((prev) => ({ ...prev, [key]: end }));
+              setAnimatedStats(prev => ({ ...prev, [key]: end }));
               clearInterval(timer);
             } else {
-              setAnimatedStats((prev) => ({ ...prev, [key]: Math.floor(start) }));
+              setAnimatedStats(prev => ({ ...prev, [key]: Math.floor(start) }));
             }
           }, stepTime);
           return timer;
@@ -88,6 +103,8 @@ export default function Analytics() {
       return () => timers.forEach(clearInterval);
     }
   }, [stats]);
+
+  // ... rest of your component (JSX) stays the same
 
   if (!stats) {
     return (
