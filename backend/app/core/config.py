@@ -9,40 +9,48 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     DB_URL: str = "sqlite:///./neurostack.db"
 
+    # Local dev (Ollama)
     OLLAMA_MODEL: str = "gemma3:4b"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    HF_MODEL: str = "google/gemma-2-2b-it"
 
-    # This will be overridden by secrets on HF Spaces
+    # HF Inference (legacy)
+    HF_MODEL: str = "google/gemma-2-2b-it"
     HF_TOKEN: str = ""
+
+    # NEW: Groq Cloud API values
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+    GROQ_API_URL: str = "https://api.groq.com/openai/v1"
 
     class Config:
         env_file = ".env"
 
-# Instantiate settings first
 settings = Settings()
 
-# ────────────────── DETECT HF SPACE & INJECT TOKEN ──────────────────
+# Detect HuggingFace Space
 IS_HF_SPACE = bool(
     os.getenv("HF_SPACE_ID") or
     "hf.co" in os.getenv("HOSTNAME", "") or
     os.getenv("SYSTEMCTL_UNIT")
 )
 
-# Pull real token from HF Secrets
-real_token = os.getenv("HF_TOKEN", "").strip()
+# Pull secrets
+real_hf = os.getenv("HF_TOKEN", "").strip()
+real_groq = os.getenv("GROQ_API_KEY", "").strip()
 
 if IS_HF_SPACE:
     print("\n" + "="*80)
-    print("HUGGING FACE SPACE DETECTED — SWITCHING TO GEMMA-2-2B-IT")
-    print(f"HF_TOKEN loaded from Secrets → {'YES' if real_token else 'NO — ADD IT NOW'}")
-    print("MODEL: google/gemma-2-2b-it")
+    print("HUGGING FACE SPACE DETECTED — USING GROQ API FOR LLM")
+    print(f"GROQ_API_KEY loaded → {'YES' if real_groq else 'NO — ADD IT NOW'}")
     print("="*80 + "\n")
-    
-    # THIS IS THE LINE THAT WAS MISSING
-    settings.HF_TOKEN = real_token
+
+    # Inject secrets
+    settings.HF_TOKEN = real_hf
+    settings.GROQ_API_KEY = real_groq
+    settings.GROQ_MODEL = os.getenv("GROQ_MODEL", settings.GROQ_MODEL)
+    settings.GROQ_API_URL = os.getenv("GROQ_API_URL", settings.GROQ_API_URL)
+
 else:
     print("\n" + "="*80)
     print("LOCAL DEV MODE — USING OLLAMA (localhost:11434)")
     print("="*80 + "\n")
-
