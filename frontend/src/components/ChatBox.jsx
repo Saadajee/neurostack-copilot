@@ -16,78 +16,78 @@ export default function ChatBox({ onSend }) {
     }
   }, [input]);
 
-  const send = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const query = input.trim();
-    setInput("");
-    onSend({ query, answer: "", chunks: [], streaming: true });
-    setLoading(true);
-
-    // 1. Increment query counter (fire and forget — your counter stays intact)
-    client.post("/increment-query").catch(() => {
-      console.log("Query counter failed (not critical)");
-    });
-
-    let fullAnswer = "";
-    let chunks = [];
-
-    try {
-      const response = await client.post("/rag/query", { query }, {
-        responseType: "stream"  // ← ONLY for this request
-      });
-
-      const stream = response.data;
-      const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        let boundary = buffer.indexOf("\n");
-        while (boundary !== -1) {
-          const line = buffer.slice(0, boundary);
-          buffer = buffer.slice(boundary + 1);
-
-          if (line.startsWith("data: ")) {
-            const dataStr = line.slice(6).trim();
-            if (dataStr === "[DONE]") break;
-
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.token) {
-                fullAnswer += data.token;
-                onSend({ query, answer: fullAnswer, chunks, streaming: true });
-              }
-              if (data.chunks) chunks = data.chunks;
-              if (data.answer) {
-                fullAnswer = data.answer;
-                onSend({ query, answer: fullAnswer, chunks, streaming: false });
-              }
-            } catch (e) {}
+    const send = async (e) => {
+      e.preventDefault();
+      if (!input.trim() || loading) return;
+    
+      const query = input.trim();
+      setInput("");
+      onSend({ query, answer: "", chunks: [], streaming: true });
+      setLoading(true);
+    
+      // Fire and forget counter
+      client.post("/increment-query").catch(() => {});
+    
+      let fullAnswer = "";
+      let chunks = [];
+    
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${import.meta.env.VITE_API_BASE}/rag/query`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ query }),
+        });
+    
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+    
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+    
+          const text = decoder.decode(value);
+          const lines = text.split("\n");
+    
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              if (data.trim() === "[DONE]") break;
+              try {
+                const json = JSON.parse(data);
+                if (json.token) {
+                  fullAnswer += json.token;
+                  onSend({ query, answer: fullAnswer, chunks, streaming: true });
+                }
+                if (json.chunks) chunks = json.chunks;
+                if (json.answer) {
+                  fullAnswer = json.answer;
+                  onSend({ query, answer: fullAnswer, chunks, streaming: false });
+                }
+              } catch (e) {}
+            }
           }
-          boundary = buffer.indexOf("\n");
         }
+    
+        onSend({ query, answer: fullAnswer || "Hey there!", chunks, streaming: false });
+    
+      } catch (err) {
+        console.error(err);
+        onSend({
+          query,
+          answer: "Server is offline or unreachable.",
+          chunks: [],
+          streaming: false,
+        });
+      } finally {
+        setLoading(false);
       }
-
-      onSend({ query, answer: fullAnswer || "Done.", chunks, streaming: false });
-
-    } catch (err) {
-      console.error("RAG query failed:", err);
-      onSend({
-        query,
-        answer: "Server is offline or unreachable.",
-        chunks: [],
-        streaming: false,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   return (
     <form onSubmit={send} className="flex items-center w-full px-6 py-4">
