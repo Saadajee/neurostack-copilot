@@ -1,5 +1,5 @@
 // frontend/src/components/Auth.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import client from "../api/axiosClient";
 
 export default function Auth({ onLogin }) {
@@ -7,48 +7,55 @@ export default function Auth({ onLogin }) {
   const [password, setPassword] = useState("");
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
+  const [justRegistered, setJustRegistered] = useState(false);
+
+  // Auto-clear fields ONLY after successful register
+  useEffect(() => {
+    if (justRegistered) {
+      setEmail("");
+      setPassword("");
+      setJustRegistered(false);
+    }
+  }, [justRegistered]);
 
   async function submit(e) {
     e.preventDefault();
     setError("");
-  
+
     try {
       const endpoint = isLogin ? "/auth/login" : "/auth/register";
       const res = await client.post(endpoint, {
         username: email,
         password,
       });
-  
-      const token = res.data.access_token;
-  
-      // IF REGISTERING A NEW USER → FULL WIPE (except theme email)
-      if (!isLogin) {
-        // Clear ALL old user data — fresh start!
-        localStorage.clear();
-  
-        // But keep theme preference linked to this email
-        localStorage.setItem("last_email_for_theme", email);
-      }
-  
-      // Always save fresh login data
-      localStorage.setItem("token", token);
+
+      localStorage.setItem("token", res.data.access_token);
       localStorage.setItem("email", email);
-  
-      // If logging in, preserve theme from previous session of this email
-      if (isLogin) {
-        localStorage.setItem("last_email_for_theme", email);
+      localStorage.setItem("last_email_for_theme", email);
+
+      // ONLY CLEAR ON SUCCESSFUL REGISTER
+      if (!isLogin) {
+        setJustRegistered(true); // triggers useEffect to clear
       }
-  
+
       onLogin({ email });
-  
+
     } catch (err) {
       setError(
         err.response?.data?.detail ||
           err.message ||
           "Network error — check backend"
       );
+      // Keep email/password on error → user can fix or switch to register
     }
   }
+
+  // Manual clear when switching modes (optional, but feels nice)
+  const switchMode = () => {
+    setIsLogin(!isLogin);
+    setError("");
+    // Don't clear fields when switching — helps user who got "invalid login" → register
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -57,20 +64,15 @@ export default function Auth({ onLogin }) {
         <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-black to-pink-900" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(168,85,247,0.4),transparent_70%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(236,72,153,0.4),transparent_70%)]" />
-        
-        {/* Floating orbs — same blood as chat page */}
         <div className="absolute top-20 -left-40 w-96 h-96 bg-purple-600/30 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-32 -right-32 w-80 h-80 bg-pink-600/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
       </div>
 
-      {/* MAIN CARD — glassmorphism perfection */}
       <div className="relative w-full max-w-md mx-6">
         <div className="bg-white/10 dark:bg-black/40 backdrop-blur-3xl border border-white/20 rounded-3xl shadow-2xl overflow-hidden">
-          {/* Inner glow border effect */}
           <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-purple-600/20 via-transparent to-pink-600/20 blur-xl" />
-          
+         
           <div className="relative p-10">
-            {/* Title */}
             <div className="text-center mb-10">
               <h1 className="text-6xl font-extrabold bg-gradient-to-r from-purple-400 via-pink-400 to-red-400 bg-clip-text text-transparent drop-shadow-2xl">
                 Neurostack
@@ -87,7 +89,6 @@ export default function Auth({ onLogin }) {
                 className="w-full px-6 py-5 text-lg rounded-2xl bg-white/10 dark:bg-white/5 border border-white/30 text-white placeholder-white/50 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-500 transition-all duration-300 backdrop-blur-xl"
                 required
               />
-
               <input
                 type="password"
                 placeholder="Password"
@@ -114,7 +115,7 @@ export default function Auth({ onLogin }) {
                 {isLogin ? "First time here? " : "Welcome back! "}
                 <button
                   type="button"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={switchMode}
                   className="font-bold text-purple-400 hover:text-pink-400 underline-offset-4 hover:underline transition"
                 >
                   {isLogin ? "Create Account" : "Login"}
@@ -122,7 +123,6 @@ export default function Auth({ onLogin }) {
               </p>
             </form>
 
-            {/* Subtle bottom glow */}
             <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-purple-600/20 to-transparent blur-3xl" />
           </div>
         </div>
