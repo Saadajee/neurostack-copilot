@@ -9,19 +9,43 @@ export default function MessageBubble({ type, children, message }) {
 
   const sendFeedback = async (rating) => {
     if (feedbackGiven) return;
+
     const token = localStorage.getItem("token");
+
+    // Optimistic UI + instant analytics update
+    setFeedbackGiven(true);
+
+    // UPDATE ANALYTICS GRAPH IMMEDIATELY
+    window.dispatchEvent(
+      new CustomEvent("feedback-updated", {
+        detail: { rating }, // "good" or "bad"
+      })
+    );
+
     try {
-      await fetch("/feedback", {
+      await fetch(`${import.meta.env.VITE_API_BASE}/feedback`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ query: "User asked", answer: message?.text || "", rating }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          query: message?.query || "User query",
+          answer: message?.text || "",
+          rating,
+        }),
       });
-      setFeedbackGiven(true);
-      toast.success("Thanks!", {
+
+      toast.success("Thanks for your feedback!", {
+        style: { borderRadius: "12px", background: "#1a1a1a", color: "#fff" },
+        icon: "Thank you",
+      });
+    } catch (err) {
+      console.error("Feedback failed to send:", err);
+      toast.error("Feedback failed (but we counted it anyway)", {
         style: { borderRadius: "12px", background: "#1a1a1a", color: "#fff" },
       });
-    } catch {
-      toast.error("Failed");
+      // Still keep it as given — user experience first
     }
   };
 
@@ -43,18 +67,40 @@ export default function MessageBubble({ type, children, message }) {
               <button
                 onClick={() => sendFeedback("good")}
                 disabled={feedbackGiven}
-                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition"
+                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition group"
+                title="This was helpful"
               >
-                <ThumbsUp size={18} className={feedbackGiven ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"} />
+                <ThumbsUp
+                  size={18}
+                  className={`transition-all ${
+                    feedbackGiven && message?.rating === "good"
+                      ? "text-green-600 dark:text-green-400 scale-125"
+                      : "text-gray-500 dark:text-gray-400 group-hover:text-green-500"
+                  }`}
+                />
               </button>
+
               <button
                 onClick={() => sendFeedback("bad")}
                 disabled={feedbackGiven}
-                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition"
+                className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 transition group"
+                title="This needs improvement"
               >
-                <ThumbsDown size={18} className={feedbackGiven ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"} />
+                <ThumbsDown
+                  size={18}
+                  className={`transition-all ${
+                    feedbackGiven && message?.rating === "bad"
+                      ? "text-red-600 dark:text-red-400 scale-125"
+                      : "text-gray-500 dark:text-gray-400 group-hover:text-red-500"
+                  }`}
+                />
               </button>
-              {feedbackGiven && <span className="text-xs text-gray-500 dark:text-gray-400">Thanks!</span>}
+
+              {feedbackGiven && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium animate-fade-in">
+                  Thanks for your feedback!
+                </span>
+              )}
             </div>
           )}
         </div>
