@@ -4,12 +4,13 @@ import axios from "axios";
 if (!import.meta.env.VITE_API_BASE) {
   throw new Error("VITE_API_BASE is not set! Check your .env file");
 }
+
 const API_BASE = import.meta.env.VITE_API_BASE;
+
 const client = axios.create({
   baseURL: API_BASE,
   timeout: 90000,
-  // This prevents axios from buffering streams
-  responseType: "stream",   // ← add this globally
+  // DO NOT SET responseType here globally!
 });
 
 client.interceptors.request.use(
