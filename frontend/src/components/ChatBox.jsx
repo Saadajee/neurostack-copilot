@@ -33,68 +33,60 @@ export default function ChatBox({ onSend }) {
     let fullAnswer = "";
     let chunks = [];
 
-      try {
-        const response = await client.post("/rag/query", { query }, {
-          responseType: "stream"   // ← THIS IS THE KEY LINE
-        });
+    try {
+      const response = await client.post("/rag/query", { query }, {
+        responseType: "stream"  // ← ONLY for this request
+      });
 
-        const stream = response.data;
-        const reader = stream.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
+      const stream = response.data;
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          buffer += decoder.decode(value, { stream: true });
-          let boundary = buffer.indexOf("\n");
-          while (boundary !== -1) {
-            const line = buffer.slice(0, boundary);
-            buffer = buffer.slice(boundary + 1);
+        buffer += decoder.decode(value, { stream: true });
+        let boundary = buffer.indexOf("\n");
+        while (boundary !== -1) {
+          const line = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 1);
 
-            if (line.startsWith("data: ")) {
-              const dataStr = line.slice(6).trim();
-              if (dataStr === "[DONE]") {
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === "[DONE]") break;
+
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.token) {
+                fullAnswer += data.token;
+                onSend({ query, answer: fullAnswer, chunks, streaming: true });
+              }
+              if (data.chunks) chunks = data.chunks;
+              if (data.answer) {
+                fullAnswer = data.answer;
                 onSend({ query, answer: fullAnswer, chunks, streaming: false });
-                setLoading(false);
-                return;
               }
-              try {
-                const data = JSON.parse(dataStr);
-                if (data.token) {
-                  fullAnswer += data.token;
-                  onSend({ query, answer: fullAnswer, chunks, streaming: true });
-                }
-                if (data.chunks) {
-                  chunks = data.chunks;
-                }
-                if (data.answer) {
-                  fullAnswer = data.answer;
-                  onSend({ query, answer: fullAnswer, chunks, streaming: false });
-                }
-              } catch (e) {
-                // ignore junk lines
-              }
-            }
-            boundary = buffer.indexOf("\n");
+            } catch (e) {}
           }
+          boundary = buffer.indexOf("\n");
         }
-
-        // Final fallback
-        onSend({ query, answer: fullAnswer || "No response.", chunks, streaming: false });
-
-      } catch (err) {
-        console.error("RAG query failed:", err);
-        onSend({
-          query,
-          answer: "Server is offline or unreachable.",
-          chunks: [],
-          streaming: false,
-        });
-      } finally {
-        setLoading(false);
       }
+
+      onSend({ query, answer: fullAnswer || "Done.", chunks, streaming: false });
+
+    } catch (err) {
+      console.error("RAG query failed:", err);
+      onSend({
+        query,
+        answer: "Server is offline or unreachable.",
+        chunks: [],
+        streaming: false,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
