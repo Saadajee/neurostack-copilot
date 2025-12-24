@@ -123,7 +123,7 @@ A full contribution guide will be added soon.
 
 For bugs, feature requests, or integration help:
 
-📧 [saadimra7667@gmail.com](saadimran7667@gmail.com)
+📧 [saadimran7667@gmail.com](saadimran7667@gmail.com)
 
 Happy to collaborate, debug, or help you extend the project further.
 
